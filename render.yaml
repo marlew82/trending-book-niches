@@ -2,8 +2,6 @@ services:
   - type: web
     name: book-trends-analyzer
     env: python
+    runtime: python-3.11.0
     buildCommand: "pip install -r requirements.txt && python build.py"
     startCommand: "gunicorn app:app"
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.9.0
