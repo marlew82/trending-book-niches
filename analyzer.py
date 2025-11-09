@@ -96,13 +96,13 @@ class TrendAnalyzer:
             )
 
             book_count_growth = self.calculate_growth_rate(
-                last_month['book_count'],
-                first_month['book_count']
+                first_month['book_count'],
+                last_month['book_count']
             ) * -1  # More books is good, so invert
 
             review_growth = self.calculate_growth_rate(
-                last_month['total_reviews'],
-                first_month['total_reviews']
+                first_month['total_reviews'],
+                last_month['total_reviews']
             ) * -1  # More reviews is good
 
             # Calculate composite trend score
