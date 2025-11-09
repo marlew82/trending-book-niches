@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category|replace('-', ' ')|title }} - Amazon Book Trends Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>📂 {{ category|replace('-', ' ')|title }}</h1>
+        <p>Detailed analysis and performance metrics</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label" for="startMonth">Start Month</label>
+                <select id="startMonth" class="form-control">
+                    <option value="">All Time</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="endMonth">End Month</label>
+                <select id="endMonth" class="form-control">
+                    <option value="">All Time</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">&nbsp;</label>
+                <button onclick="loadCategoryData()" class="btn btn-primary" style="width: 100%;">
+                    Update View
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Performance Timeline</h2>
+        </div>
+        <div class="card-body">
+            <div id="timelineChart" class="chart-container"></div>
+        </div>
+    </div>
+
+    <!-- Timeline Table -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Monthly Metrics</h2>
+        </div>
+        <div class="card-body">
+            <div id="timelineTable" class="table-container"></div>
+        </div>
+    </div>
+
+    <!-- Top Books -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Top Performing Books</h2>
+            <div class="form-group" style="margin: 0; width: 200px;">
+                <select id="bookMonth" class="form-control" onchange="loadTopBooks()">
+                    <option value="">Select Month</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="booksTable" class="table-container"></div>
+        </div>
+    </div>
+
+    <!-- Fastest Growing Books -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Fastest Growing Books</h2>
+        </div>
+        <div class="card-body">
+            <div id="growingTable" class="table-container"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const category = "{{ category }}";
+let availableMonths = [];
+
+// Initialize page
+async function initPage() {
+    try {
+        const stats = await fetchAPI('/api/stats');
+        availableMonths = stats.months || [];
+
+        // Populate selectors
+        const startSelect = document.getElementById('startMonth');
+        const endSelect = document.getElementById('endMonth');
+        const bookMonthSelect = document.getElementById('bookMonth');
+
+        const monthOptions = availableMonths.map(month =>
+            `<option value="${month}">${month}</option>`
+        ).join('');
+
+        startSelect.innerHTML = '<option value="">All Time</option>' + monthOptions;
+        endSelect.innerHTML = '<option value="">All Time</option>' + monthOptions;
+        bookMonthSelect.innerHTML = '<option value="">Select Month</option>' + monthOptions;
+
+        // Set defaults
+        if (availableMonths.length >= 2) {
+            startSelect.value = availableMonths[availableMonths.length - 1];
+            endSelect.value = availableMonths[0];
+            bookMonthSelect.value = availableMonths[0];
+        }
+
+        // Load data
+        loadCategoryData();
+        loadTopBooks();
+        loadGrowingBooks();
+
+    } catch (error) {
+        console.error('Error initializing page:', error);
+    }
+}
+
+// Load category data
+async function loadCategoryData() {
+    const startMonth = document.getElementById('startMonth').value;
+    const endMonth = document.getElementById('endMonth').value;
+
+    loadTimelineChart(startMonth, endMonth);
+    loadTimelineTable(startMonth, endMonth);
+}
+
+// Load timeline chart
+async function loadTimelineChart(startMonth, endMonth) {
+    showLoading('timelineChart');
+
+    try {
+        const params = new URLSearchParams();
+        if (startMonth) params.append('start_month', startMonth);
+        if (endMonth) params.append('end_month', endMonth);
+
+        const chartData = await fetchAPI(`/api/chart/category/${category}/timeline?${params}`);
+
+        if (chartData.data && chartData.data.length > 0) {
+            Plotly.newPlot('timelineChart', chartData.data, chartData.layout, {
+                responsive: true,
+                displayModeBar: false
+            });
+        } else {
+            showEmpty('timelineChart', 'No timeline data available');
+        }
+    } catch (error) {
+        showError('timelineChart', 'Failed to load timeline chart');
+    }
+}
+
+// Load timeline table
+async function loadTimelineTable(startMonth, endMonth) {
+    showLoading('timelineTable');
+
+    try {
+        const params = new URLSearchParams();
+        if (startMonth) params.append('start_month', startMonth);
+        if (endMonth) params.append('end_month', endMonth);
+
+        const response = await fetchAPI(`/api/category/${category}/timeline?${params}`);
+
+        if (!response.data || response.data.length === 0) {
+            showEmpty('timelineTable');
+            return;
+        }
+
+        const tableHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th># Books</th>
+                        <th>Avg Sales Rank</th>
+                        <th>Avg Category Rank</th>
+                        <th>Avg Price</th>
+                        <th>Total Reviews</th>
+                        <th>Avg Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${response.data.reverse().map(item => `
+                        <tr>
+                            <td><strong>${item.month}</strong></td>
+                            <td>${item.book_count}</td>
+                            <td>${item.avg_sales_rank ? Math.round(item.avg_sales_rank) : '-'}</td>
+                            <td>${item.avg_category_rank ? Math.round(item.avg_category_rank) : '-'}</td>
+                            <td>${formatCurrency(item.avg_price)}</td>
+                            <td>${formatNumber(item.total_reviews)}</td>
+                            <td>⭐ ${item.avg_rating.toFixed(1)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        document.getElementById('timelineTable').innerHTML = tableHTML;
+
+    } catch (error) {
+        showError('timelineTable', 'Failed to load timeline data');
+    }
+}
+
+// Load top books
+async function loadTopBooks() {
+    const month = document.getElementById('bookMonth').value;
+
+    if (!month) {
+        document.getElementById('booksTable').innerHTML = '<p class="text-secondary">Please select a month to view top books</p>';
+        return;
+    }
+
+    showLoading('booksTable');
+
+    try {
+        const params = new URLSearchParams({ month, limit: 10 });
+        const response = await fetchAPI(`/api/category/${category}/books?${params}`);
+
+        if (!response.data || response.data.length === 0) {
+            showEmpty('booksTable', 'No books found for this month');
+            return;
+        }
+
+        const tableHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Category Rank</th>
+                        <th>Price</th>
+                        <th>Reviews</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${response.data.map((book, index) => `
+                        <tr>
+                            <td><span class="badge ${getRankBadgeClass(index + 1)}">#${index + 1}</span></td>
+                            <td><strong>${book.title}</strong></td>
+                            <td>${book.author}</td>
+                            <td>${book.category_rank ? Math.round(book.category_rank) : '-'}</td>
+                            <td>${book.price ? formatCurrency(book.price) : '-'}</td>
+                            <td>${book.review_count ? formatNumber(book.review_count) : '-'}</td>
+                            <td>⭐ ${book.rating ? book.rating.toFixed(1) : '-'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        document.getElementById('booksTable').innerHTML = tableHTML;
+
+    } catch (error) {
+        showError('booksTable', 'Failed to load books');
+    }
+}
+
+// Load growing books
+async function loadGrowingBooks() {
+    showLoading('growingTable');
+
+    const startMonth = document.getElementById('startMonth').value;
+    const endMonth = document.getElementById('endMonth').value;
+
+    try {
+        const params = new URLSearchParams({ limit: 10 });
+        if (startMonth) params.append('start_month', startMonth);
+        if (endMonth) params.append('end_month', endMonth);
+
+        const response = await fetchAPI(`/api/category/${category}/growing?${params}`);
+
+        if (!response.data || response.data.length === 0) {
+            showEmpty('growingTable', 'No growth data available');
+            return;
+        }
+
+        const tableHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Rank Improvement</th>
+                        <th>Start Rank</th>
+                        <th>End Rank</th>
+                        <th>Review Growth</th>
+                        <th>Current Price</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${response.data.map((book, index) => `
+                        <tr>
+                            <td><span class="badge ${getRankBadgeClass(index + 1)}">#${index + 1}</span></td>
+                            <td><strong>${book.title}</strong></td>
+                            <td>${book.author}</td>
+                            <td class="text-success font-bold">${(book.rank_improvement * 100).toFixed(1)}%</td>
+                            <td>${book.start_rank}</td>
+                            <td>${book.end_rank}</td>
+                            <td>+${formatNumber(book.review_growth)}</td>
+                            <td>${formatCurrency(book.current_price)}</td>
+                            <td>⭐ ${book.current_rating.toFixed(1)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        document.getElementById('growingTable').innerHTML = tableHTML;
+
+    } catch (error) {
+        showError('growingTable', 'Failed to load growing books');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+{% endblock %}

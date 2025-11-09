@@ -11,3 +11,6 @@ fake-useragent==1.4.0
 tqdm==4.66.1
 matplotlib==3.8.2
 seaborn==0.13.1
+flask==3.0.0
+werkzeug==3.0.1
+plotly==5.18.0

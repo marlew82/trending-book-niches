@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Trending Categories - Amazon Book Trends Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>📈 Trending Categories</h1>
+        <p>Discover the fastest-growing book niches on Amazon</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label" for="startMonth">Start Month</label>
+                <select id="startMonth" class="form-control">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="endMonth">End Month</label>
+                <select id="endMonth" class="form-control">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="limitSelect">Show Top</label>
+                <select id="limitSelect" class="form-control">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">&nbsp;</label>
+                <button onclick="loadTrendingData()" class="btn btn-primary" style="width: 100%;">
+                    Analyze Trends
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trending Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Trend Score Comparison</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <button onclick="exportTrendingData('csv')" class="btn btn-outline btn-sm">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Export CSV
+                </button>
+                <button onclick="exportTrendingData('json')" class="btn btn-outline btn-sm">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Export JSON
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="trendingChart" class="chart-container"></div>
+        </div>
+    </div>
+
+    <!-- Trending Table -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Detailed Metrics</h2>
+        </div>
+        <div class="card-body">
+            <div id="trendingTable" class="table-container"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let availableMonths = [];
+let currentStartMonth = '';
+let currentEndMonth = '';
+
+// Initialize page
+async function initPage() {
+    try {
+        const stats = await fetchAPI('/api/stats');
+        availableMonths = stats.months || [];
+
+        // Populate month selectors
+        const startSelect = document.getElementById('startMonth');
+        const endSelect = document.getElementById('endMonth');
+
+        startSelect.innerHTML = availableMonths.map(month =>
+            `<option value="${month}">${month}</option>`
+        ).join('');
+
+        endSelect.innerHTML = availableMonths.map(month =>
+            `<option value="${month}">${month}</option>`
+        ).join('');
+
+        // Set defaults
+        if (availableMonths.length >= 2) {
+            startSelect.value = availableMonths[availableMonths.length - 1];
+            endSelect.value = availableMonths[0];
+        }
+
+        // Load initial data
+        loadTrendingData();
+
+    } catch (error) {
+        console.error('Error initializing page:', error);
+        showError('trendingChart', 'Failed to load data');
+    }
+}
+
+// Load trending data
+async function loadTrendingData() {
+    const startMonth = document.getElementById('startMonth').value;
+    const endMonth = document.getElementById('endMonth').value;
+    const limit = document.getElementById('limitSelect').value;
+
+    if (!startMonth || !endMonth) {
+        alert('Please select both start and end months');
+        return;
+    }
+
+    currentStartMonth = startMonth;
+    currentEndMonth = endMonth;
+
+    // Load chart
+    loadTrendingChart(startMonth, endMonth);
+
+    // Load table
+    loadTrendingTable(startMonth, endMonth, limit);
+}
+
+// Load trending chart
+async function loadTrendingChart(startMonth, endMonth) {
+    showLoading('trendingChart');
+
+    try {
+        const params = new URLSearchParams({ start_month: startMonth, end_month: endMonth });
+        const chartData = await fetchAPI(`/api/chart/trending?${params}`);
+
+        if (chartData.data && chartData.data.length > 0) {
+            Plotly.newPlot('trendingChart', chartData.data, chartData.layout, {
+                responsive: true,
+                displayModeBar: false
+            });
+        } else {
+            showEmpty('trendingChart', 'No trending data for this period');
+        }
+    } catch (error) {
+        showError('trendingChart', 'Failed to load chart');
+    }
+}
+
+// Load trending table
+async function loadTrendingTable(startMonth, endMonth, limit) {
+    const tableContainer = document.getElementById('trendingTable');
+    tableContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+    try {
+        const params = new URLSearchParams({ start_month: startMonth, end_month: endMonth, limit });
+        const response = await fetchAPI(`/api/trending?${params}`);
+
+        if (!response.data || response.data.length === 0) {
+            showEmpty('trendingTable', 'No trending data for this period');
+            return;
+        }
+
+        const tableHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Category</th>
+                        <th>Trend Score</th>
+                        <th>Rank Improvement</th>
+                        <th>Book Growth</th>
+                        <th>Review Growth</th>
+                        <th># Books</th>
+                        <th>Avg Price</th>
+                        <th>Avg Rating</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${response.data.map((item, index) => `
+                        <tr>
+                            <td><span class="badge ${getRankBadgeClass(index + 1)}">#${index + 1}</span></td>
+                            <td><strong>${formatCategoryName(item.category)}</strong></td>
+                            <td>${getTrendBadge(item.trend_score)}</td>
+                            <td class="${item.rank_improvement > 0 ? 'text-success' : 'text-danger'}">
+                                ${(item.rank_improvement * 100).toFixed(2)}%
+                            </td>
+                            <td class="${item.book_count_growth > 0 ? 'text-success' : 'text-danger'}">
+                                ${(item.book_count_growth * 100).toFixed(2)}%
+                            </td>
+                            <td class="${item.review_growth > 0 ? 'text-success' : 'text-danger'}">
+                                ${(item.review_growth * 100).toFixed(2)}%
+                            </td>
+                            <td>${item.current_books}</td>
+                            <td>${formatCurrency(item.avg_price)}</td>
+                            <td>⭐ ${item.avg_rating.toFixed(1)}</td>
+                            <td>
+                                <a href="/category/${item.category}" class="btn btn-outline btn-sm">
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        tableContainer.innerHTML = tableHTML;
+
+    } catch (error) {
+        showError('trendingTable', 'Failed to load table data');
+    }
+}
+
+// Export trending data
+function exportTrendingData(format) {
+    const params = {
+        start_month: currentStartMonth,
+        end_month: currentEndMonth,
+        format: format
+    };
+
+    exportData('trending', params);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+{% endblock %}

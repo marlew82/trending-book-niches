@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Top Books - Amazon Book Trends Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>📖 Top Books</h1>
+        <p>Discover the best-performing books across all categories</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+        <div class="filter-grid">
+            <div class="form-group">
+                <label class="form-label" for="categorySelect">Category</label>
+                <select id="categorySelect" class="form-control">
+                    <option value="">Select Category</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="monthSelect">Month</label>
+                <select id="monthSelect" class="form-control">
+                    <option value="">Select Month</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="limitSelect">Show Top</label>
+                <select id="limitSelect" class="form-control">
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">&nbsp;</label>
+                <button onclick="loadBooks()" class="btn btn-primary" style="width: 100%;">
+                    Load Books
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Books Table -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Book Rankings</h2>
+        </div>
+        <div class="card-body">
+            <div id="booksTable" class="table-container">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                    <h3>Select a category and month</h3>
+                    <p>Choose filters above to view top books</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Links -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Browse by Category</h2>
+        </div>
+        <div class="card-body">
+            <div id="categoryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let categories = [];
+let months = [];
+
+// Initialize page
+async function initPage() {
+    try {
+        const stats = await fetchAPI('/api/stats');
+        categories = stats.categories || [];
+        months = stats.months || [];
+
+        // Populate category select
+        const categorySelect = document.getElementById('categorySelect');
+        categorySelect.innerHTML = '<option value="">Select Category</option>' +
+            categories.map(cat =>
+                `<option value="${cat}">${formatCategoryName(cat)}</option>`
+            ).join('');
+
+        // Populate month select
+        const monthSelect = document.getElementById('monthSelect');
+        monthSelect.innerHTML = '<option value="">Select Month</option>' +
+            months.map(month =>
+                `<option value="${month}">${month}</option>`
+            ).join('');
+
+        // Set defaults
+        if (categories.length > 0) categorySelect.value = categories[0];
+        if (months.length > 0) monthSelect.value = months[0];
+
+        // Populate category grid
+        loadCategoryGrid();
+
+    } catch (error) {
+        console.error('Error initializing page:', error);
+    }
+}
+
+// Load books
+async function loadBooks() {
+    const category = document.getElementById('categorySelect').value;
+    const month = document.getElementById('monthSelect').value;
+    const limit = document.getElementById('limitSelect').value;
+
+    if (!category || !month) {
+        alert('Please select both category and month');
+        return;
+    }
+
+    showLoading('booksTable');
+
+    try {
+        const params = new URLSearchParams({ month, limit });
+        const response = await fetchAPI(`/api/category/${category}/books?${params}`);
+
+        if (!response.data || response.data.length === 0) {
+            showEmpty('booksTable', 'No books found');
+            return;
+        }
+
+        const tableHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Category</th>
+                        <th>Category Rank</th>
+                        <th>Sales Rank</th>
+                        <th>Price</th>
+                        <th>Reviews</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${response.data.map((book, index) => `
+                        <tr>
+                            <td>
+                                <span class="badge ${getRankBadgeClass(index + 1)}">#${index + 1}</span>
+                            </td>
+                            <td>
+                                <strong>${book.title}</strong>
+                            </td>
+                            <td>${book.author}</td>
+                            <td>
+                                <a href="/category/${category}" class="badge primary">
+                                    ${formatCategoryName(category)}
+                                </a>
+                            </td>
+                            <td>${book.category_rank ? Math.round(book.category_rank) : '-'}</td>
+                            <td>${book.sales_rank ? formatNumber(book.sales_rank) : '-'}</td>
+                            <td class="font-semibold">${book.price ? formatCurrency(book.price) : '-'}</td>
+                            <td>${book.review_count ? formatNumber(book.review_count) : '-'}</td>
+                            <td>
+                                <span class="badge ${book.rating >= 4.5 ? 'success' : book.rating >= 4.0 ? 'primary' : 'warning'}">
+                                    ⭐ ${book.rating ? book.rating.toFixed(1) : '-'}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        document.getElementById('booksTable').innerHTML = tableHTML;
+
+    } catch (error) {
+        showError('booksTable', 'Failed to load books');
+    }
+}
+
+// Load category grid
+function loadCategoryGrid() {
+    const grid = document.getElementById('categoryGrid');
+
+    if (categories.length === 0) {
+        grid.innerHTML = '<p class="text-secondary">No categories available</p>';
+        return;
+    }
+
+    grid.innerHTML = categories.map(category => `
+        <a href="/category/${category}" class="btn btn-outline" style="justify-content: center;">
+            ${formatCategoryName(category)}
+        </a>
+    `).join('');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+{% endblock %}

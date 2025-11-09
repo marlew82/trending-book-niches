@@ -1,28 +1,58 @@
 # Amazon Book Trends Analyzer
 
-A comprehensive Python tool for analyzing trending book niches on Amazon with month-by-month filtering, data collection, trend analysis, and interactive reporting.
+A comprehensive Python tool for analyzing trending book niches on Amazon with month-by-month filtering, data collection, trend analysis, and interactive reporting. **Now includes a beautiful web interface!**
 
-## Features
+## ✨ Features
 
+- **🌐 Modern Web Interface**: Beautiful, responsive web application with interactive charts
 - **📊 Data Collection**: Automated scraping of Amazon bestseller lists with responsible anti-scraping measures
 - **💾 Data Storage**: Efficient SQLite database with optimized queries
 - **📈 Trend Analysis**: Calculate growth rates, rank improvements, and trending niches
 - **🔍 Month-by-Month Filtering**: Analyze trends across any time period
 - **📋 Multiple Export Formats**: Export reports as CSV or JSON
-- **🎨 Interactive CLI**: Beautiful command-line interface with colored output
+- **🎨 Dual Interface**: Both web UI and CLI available
 - **📚 Historical Data**: Track up to 12 months of historical data
+- **📊 Interactive Charts**: Powered by Plotly for beautiful visualizations
+
+## 🚀 Quick Start (Web Interface)
+
+The easiest way to use this tool is through the web interface:
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Generate sample data
+python3 main.py generate-sample-data --months 12
+
+# 3. Run the web application
+python3 app.py
+```
+
+Then open your browser to **http://localhost:5000** and explore the beautiful interface!
 
 ## Project Structure
 
 ```
 trending-book-niches/
+├── app.py              # Flask web application
 ├── config.py           # Configuration settings
 ├── database.py         # Database operations (SQLite)
 ├── scraper.py          # Amazon web scraper
 ├── analyzer.py         # Trend analysis engine
 ├── cli.py              # Command-line interface
-├── main.py             # Entry point
+├── main.py             # CLI entry point
 ├── requirements.txt    # Python dependencies
+├── templates/          # HTML templates
+│   ├── base.html       # Base template
+│   ├── index.html      # Dashboard
+│   ├── trending.html   # Trending categories
+│   ├── category.html   # Category details
+│   ├── books.html      # Top books
+│   └── about.html      # About page
+├── static/             # Static assets
+│   ├── css/style.css   # Custom CSS
+│   └── js/main.js      # JavaScript
 ├── data/               # Data directory
 │   ├── books.db        # SQLite database
 │   └── exports/        # Exported reports
@@ -96,7 +126,79 @@ View trending categories between two months:
 python main.py trending --start-month 2024-01 --end-month 2024-12
 ```
 
-## Usage Guide
+## 🌐 Web Interface Guide
+
+### Starting the Web Application
+
+```bash
+python3 app.py
+```
+
+The web server will start at **http://localhost:5000**
+
+### Web Interface Features
+
+#### 📊 **Dashboard** (/)
+- Overview statistics (categories, books, months tracked)
+- Quick trending chart
+- Category browser
+- Quick actions (generate sample data, view trending, etc.)
+
+#### 📈 **Trending Categories** (/trending)
+- Interactive filters for date ranges
+- Top trending categories with composite scores
+- Detailed metrics table (rank improvement, book growth, review growth)
+- Export to CSV/JSON
+- Interactive bar charts
+
+#### 📂 **Category Details** (/category/<category-name>)
+- Performance timeline chart
+- Monthly metrics table
+- Top performing books in selected month
+- Fastest growing books in the category
+
+#### 📖 **Top Books** (/books)
+- Filter by category and month
+- Detailed book rankings
+- Sales rank, reviews, ratings, and prices
+- Category browser
+
+#### ℹ️ **About** (/about)
+- Methodology explanation
+- Trend score formula
+- Technology stack
+- Getting started guide
+
+### API Endpoints
+
+The web application also provides RESTful API endpoints:
+
+- `GET /api/stats` - Overall statistics
+- `GET /api/trending?start_month=YYYY-MM&end_month=YYYY-MM` - Trending categories
+- `GET /api/category/<category>/timeline` - Category timeline
+- `GET /api/category/<category>/books?month=YYYY-MM` - Top books
+- `GET /api/category/<category>/growing` - Fastest growing books
+- `GET /api/chart/trending` - Trending chart data (Plotly JSON)
+- `GET /api/chart/category/<category>/timeline` - Category timeline chart
+- `GET /api/export/trending?format=csv|json` - Export trending data
+
+### Example API Usage
+
+```bash
+# Get overall stats
+curl http://localhost:5000/api/stats
+
+# Get trending categories
+curl "http://localhost:5000/api/trending?start_month=2024-01&end_month=2024-12"
+
+# Get top books in romance category
+curl "http://localhost:5000/api/category/romance/books?month=2024-12&limit=10"
+
+# Export trending data as CSV
+curl "http://localhost:5000/api/export/trending?start_month=2024-01&end_month=2024-12&format=csv" -o trending.csv
+```
+
+## 💻 CLI Usage Guide
 
 ### Commands Overview
 

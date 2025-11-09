@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}About - Amazon Book Trends Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>ℹ️ About This Tool</h1>
+        <p>Learn how we analyze book trends and market data</p>
+    </div>
+
+    <!-- Overview -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Overview</h2>
+        </div>
+        <div class="card-body">
+            <p>The Amazon Book Trends Analyzer is a comprehensive tool designed to help authors, publishers, and market researchers identify trending book niches on Amazon. By tracking sales ranks, review counts, pricing, and ratings over time, we provide actionable insights into market opportunities.</p>
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Key Features</h2>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                <div>
+                    <h3 style="color: var(--primary-color); margin-bottom: 0.75rem;">📊 Trend Analysis</h3>
+                    <p>Track category performance using our composite trend score that weighs rank improvements, book count growth, and review growth.</p>
+                </div>
+                <div>
+                    <h3 style="color: var(--primary-color); margin-bottom: 0.75rem;">📈 Monthly Tracking</h3>
+                    <p>Filter and analyze data by specific months or date ranges to identify seasonal trends and long-term patterns.</p>
+                </div>
+                <div>
+                    <h3 style="color: var(--primary-color); margin-bottom: 0.75rem;">📚 Book Rankings</h3>
+                    <p>View top-performing books in each category with detailed metrics including sales rank, reviews, and ratings.</p>
+                </div>
+                <div>
+                    <h3 style="color: var(--primary-color); margin-bottom: 0.75rem;">🚀 Growth Detection</h3>
+                    <p>Identify books with the fastest rank improvements to spot emerging opportunities early.</p>
+                </div>
+                <div>
+                    <h3 style="color: var(--primary-color); margin-bottom: 0.75rem;">📥 Data Export</h3>
+                    <p>Export analysis results in CSV or JSON format for further analysis in your preferred tools.</p>
+                </div>
+                <div>
+                    <h3 style="color: var(--primary-color); margin-bottom: 0.75rem;">📊 Interactive Charts</h3>
+                    <p>Visualize trends with interactive Plotly charts that make patterns easy to spot and understand.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Methodology -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Trend Score Methodology</h2>
+        </div>
+        <div class="card-body">
+            <p>Our trending algorithm uses a composite score calculated from multiple factors:</p>
+
+            <div style="margin: 2rem 0;">
+                <h3 style="margin-bottom: 1rem;">Trend Score Formula</h3>
+                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: var(--border-radius); font-family: monospace; margin-bottom: 1.5rem;">
+                    Trend Score = (Rank Improvement × 0.4) + (Book Count Growth × 0.3) + (Review Growth × 0.3)
+                </div>
+
+                <h4 style="color: var(--primary-color); margin-top: 1.5rem; margin-bottom: 0.75rem;">Components:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;">
+                        <strong style="color: var(--primary-color);">Rank Improvement (40%):</strong>
+                        <span style="position: absolute; left: 0;">📊</span>
+                        Measures how much the average category rank has improved (lower is better). A positive value indicates books in the category are climbing the bestseller lists.
+                    </li>
+                    <li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;">
+                        <strong style="color: var(--success-color);">Book Count Growth (30%):</strong>
+                        <span style="position: absolute; left: 0;">📚</span>
+                        Tracks the increase in number of books in the category. More books entering a niche can indicate growing market demand.
+                    </li>
+                    <li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;">
+                        <strong style="color: var(--warning-color);">Review Growth (30%):</strong>
+                        <span style="position: absolute; left: 0;">⭐</span>
+                        Monitors the increase in total reviews. Growing reviews suggest active readership and sustained interest.
+                    </li>
+                </ul>
+            </div>
+
+            <p><strong>Interpretation:</strong> A positive trend score indicates a growing, healthy niche. Higher scores suggest faster growth and greater opportunity. Categories with scores above 10% are considered strongly trending.</p>
+        </div>
+    </div>
+
+    <!-- Data Collection -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Data Collection</h2>
+        </div>
+        <div class="card-body">
+            <h3 style="margin-bottom: 1rem;">How We Gather Data</h3>
+            <p>Our tool supports two modes of data collection:</p>
+
+            <div style="margin: 1.5rem 0;">
+                <h4 style="color: var(--primary-color); margin-bottom: 0.75rem;">1. Sample Data Generation</h4>
+                <p>For demonstration and testing purposes, we can generate realistic sample data that simulates 12 months of historical tracking. This is perfect for exploring the tool's features without live scraping.</p>
+
+                <h4 style="color: var(--primary-color); margin-top: 1.5rem; margin-bottom: 0.75rem;">2. Live Data Collection</h4>
+                <p>When configured, the tool can collect data from Amazon bestseller lists. Our scraper implements responsible practices:</p>
+                <ul style="margin-left: 2rem; margin-top: 0.75rem;">
+                    <li>Random delays between requests (2-5 seconds)</li>
+                    <li>User agent rotation</li>
+                    <li>Retry logic with exponential backoff</li>
+                    <li>Respect for rate limits</li>
+                </ul>
+
+                <div style="background: var(--bg-secondary); border-left: 4px solid var(--warning-color); padding: 1rem; margin-top: 1rem; border-radius: var(--border-radius);">
+                    <strong>⚠️ Important Note:</strong> Amazon's Terms of Service may prohibit automated scraping. For production use, we recommend using Amazon's official Product Advertising API or working with licensed data providers.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technology Stack -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Technology Stack</h2>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                <div>
+                    <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">Backend</h4>
+                    <ul style="list-style: none; padding: 0; color: var(--text-secondary);">
+                        <li>🐍 Python 3.8+</li>
+                        <li>🌐 Flask Web Framework</li>
+                        <li>🗄️ SQLite Database</li>
+                        <li>📊 Pandas for Data Analysis</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">Frontend</h4>
+                    <ul style="list-style: none; padding: 0; color: var(--text-secondary);">
+                        <li>🎨 Custom CSS (No frameworks!)</li>
+                        <li>📈 Plotly for Charts</li>
+                        <li>⚡ Vanilla JavaScript</li>
+                        <li>📱 Responsive Design</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">Data Collection</h4>
+                    <ul style="list-style: none; padding: 0; color: var(--text-secondary);">
+                        <li>🌐 BeautifulSoup4</li>
+                        <li>📡 Requests Library</li>
+                        <li>🔄 Sample Data Generator</li>
+                        <li>⏱️ Automated Scheduling</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Get Started -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Get Started</h2>
+        </div>
+        <div class="card-body">
+            <h3 style="margin-bottom: 1rem;">Quick Start Guide</h3>
+            <ol style="margin-left: 2rem; line-height: 2;">
+                <li>Generate sample data from the Dashboard to populate the database</li>
+                <li>Explore the <a href="/trending" style="color: var(--primary-color);">Trending</a> page to see which categories are growing</li>
+                <li>Click on a category to view detailed timelines and metrics</li>
+                <li>Check the <a href="/books" style="color: var(--primary-color);">Top Books</a> page to see individual book performance</li>
+                <li>Export your findings as CSV or JSON for further analysis</li>
+            </ol>
+
+            <div style="margin-top: 2rem; text-align: center;">
+                <a href="/" class="btn btn-primary">Go to Dashboard</a>
+                <a href="/trending" class="btn btn-secondary" style="margin-left: 1rem;">View Trending Categories</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Info -->
+    <div class="card">
+        <div class="card-body text-center">
+            <h3 style="margin-bottom: 1rem;">Built with ❤️ for Book Market Research</h3>
+            <p style="color: var(--text-secondary);">This tool is open-source and available for educational and research purposes.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

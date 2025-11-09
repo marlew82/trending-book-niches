@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Amazon Book Trends Analyzer{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>📚 Book Trends Dashboard</h1>
+        <p>Track trending book niches on Amazon with comprehensive data analysis</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-value" id="totalCategories">-</div>
+                    <div class="stat-card-label">Categories Tracked</div>
+                </div>
+                <div class="stat-card-icon primary">📂</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-value" id="totalBooks">-</div>
+                    <div class="stat-card-label">Books Analyzed</div>
+                </div>
+                <div class="stat-card-icon success">📖</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-value" id="monthsTracked">-</div>
+                    <div class="stat-card-label">Months of Data</div>
+                </div>
+                <div class="stat-card-icon warning">📅</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div>
+                    <div class="stat-card-value" id="dateRange">-</div>
+                    <div class="stat-card-label">Date Range</div>
+                </div>
+                <div class="stat-card-icon secondary">⏱️</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Quick Actions</h2>
+        </div>
+        <div class="card-body">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <a href="/trending" class="btn btn-primary">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    View Trending Categories
+                </a>
+                <a href="/books" class="btn btn-secondary">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                    Top Books
+                </a>
+                <button onclick="generateSampleData()" class="btn btn-outline">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Generate Sample Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trending Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Top Trending Categories</h2>
+            <a href="/trending" class="btn btn-outline btn-sm">View All →</a>
+        </div>
+        <div class="card-body">
+            <div id="trendingChart" class="chart-container"></div>
+        </div>
+    </div>
+
+    <!-- Categories Overview -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Categories Overview</h2>
+        </div>
+        <div class="card-body">
+            <div id="categoriesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+                <!-- Categories will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load dashboard data
+async function loadDashboard() {
+    try {
+        // Load stats
+        const stats = await fetchAPI('/api/stats');
+
+        document.getElementById('totalCategories').textContent = stats.total_categories;
+        document.getElementById('totalBooks').textContent = formatNumber(stats.total_books);
+        document.getElementById('monthsTracked').textContent = stats.months_tracked;
+
+        if (stats.date_range.start && stats.date_range.end) {
+            const startDate = new Date(stats.date_range.start);
+            const endDate = new Date(stats.date_range.end);
+            document.getElementById('dateRange').textContent =
+                `${startDate.toLocaleDateString('en-US', {month: 'short', year: 'numeric'})} - ${endDate.toLocaleDateString('en-US', {month: 'short', year: 'numeric'})}`;
+        }
+
+        // Load trending chart
+        loadTrendingChart();
+
+        // Load categories grid
+        loadCategoriesGrid(stats.categories);
+
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+    }
+}
+
+// Load trending chart
+async function loadTrendingChart() {
+    showLoading('trendingChart');
+
+    try {
+        const chartData = await fetchAPI('/api/chart/trending');
+
+        if (chartData.data && chartData.data.length > 0) {
+            Plotly.newPlot('trendingChart', chartData.data, chartData.layout, {
+                responsive: true,
+                displayModeBar: false
+            });
+        } else {
+            showEmpty('trendingChart', 'No trending data available');
+        }
+    } catch (error) {
+        showError('trendingChart', 'Failed to load trending chart');
+    }
+}
+
+// Load categories grid
+function loadCategoriesGrid(categories) {
+    const grid = document.getElementById('categoriesGrid');
+
+    if (!categories || categories.length === 0) {
+        grid.innerHTML = '<p class="text-secondary">No categories available</p>';
+        return;
+    }
+
+    grid.innerHTML = categories.map(category => `
+        <a href="/category/${category}" style="text-decoration: none;">
+            <div class="stat-card">
+                <div class="stat-card-label">${formatCategoryName(category)}</div>
+                <div class="mt-2">
+                    <span class="badge primary">View Details →</span>
+                </div>
+            </div>
+        </a>
+    `).join('');
+}
+
+// Generate sample data
+async function generateSampleData() {
+    if (!confirm('Generate 12 months of sample data? This may take a moment.')) {
+        return;
+    }
+
+    try {
+        const result = await fetchAPI('/api/generate-sample-data?months=12');
+
+        if (result.success) {
+            alert('Sample data generated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Failed to generate sample data: ' + error.message);
+    }
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}
